@@ -1,35 +1,28 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import AddBook from './pages/AddBook';
-import Marketplace from './pages/Marketplace';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
+import { LandingPage } from './pages/LandingPage';
+import { Dashboard } from './pages/Dashboard';
+import { Layout } from './components/layout/Layout';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Navbar />
-      <div style={{ padding: "20px" }}>
+    <ThemeProvider>
+      <Router>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* PRIVATE LIBRARY (Default Home) */}
-          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          
-          {/* PUBLIC STORE */}
-          <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
-          
-          {/* UPLOAD PAGE (Handles both) */}
-          <Route path="/add-book" element={<ProtectedRoute><AddBook /></ProtectedRoute>} />
-          
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Protected Routes (Mocked) */}
+          <Route path="/" element={<Layout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="books" element={<Dashboard />} /> {/* Reusing Dashboard for demo */}
+            <Route path="settings" element={<div className="text-white">Settings Page (Coming Soon)</div>} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
-    </BrowserRouter>
+      </Router>
+    </ThemeProvider>
   );
 }
 

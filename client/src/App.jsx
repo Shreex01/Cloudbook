@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Layout } from './components/layout/Layout';
+import Success from './pages/Success';
 
 function App() {
   return (
@@ -25,5 +26,6 @@ function App() {
     </ThemeProvider>
   );
 }
+<Route path="/success" element={<Success />} />
 
 export default App;

@@ -10,12 +10,33 @@ function Marketplace() {
     axios.get('http://localhost:5000/api/books/marketplace').then(res => setBooks(res.data));
   }, []);
 
-  const handleBuy = async (bookId) => {
-    try {
-      await axios.put(`http://localhost:5000/api/users/${userId}/buy/${bookId}`);
-      alert("Bought!");
-    } catch (err) { alert("Already owned or error"); }
-  };
+  // ... keep imports
+// Make sure axios is imported
+
+const handleBuy = async (bookId) => {
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    alert("Please login to buy.");
+    navigate("/login");
+    return;
+  }
+
+  try {
+    // 1. Ask backend for a Stripe Ticket
+    const res = await axios.post('http://localhost:5000/api/payment/create-checkout-session', {
+        bookId,
+        userId
+    });
+
+    // 2. Redirect user to the Stripe URL provided by backend
+    if (res.data.url) {
+        window.location.href = res.data.url; 
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Payment Setup Failed");
+  }
+};
 
   return (
     <div>

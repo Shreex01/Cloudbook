@@ -8,7 +8,7 @@ function Home() {
 
   useEffect(() => {
     if (userId) {
-      axios.get(`http://localhost:5000/api/books/my-library/${userId}`)
+      axios.get(`/api/books/my-library/${userId}`)
         .then(res => setBooks(res.data))
         .catch(err => console.error(err));
     }
@@ -16,7 +16,7 @@ function Home() {
 
   const handleDelete = async (bookId) => {
     if (window.confirm("Delete this book?")) {
-      await axios.delete(`http://localhost:5000/api/books/${bookId}`);
+      await axios.delete(`/api/books/${bookId}`);
       setBooks(books.filter(b => b._id !== bookId));
     }
   };

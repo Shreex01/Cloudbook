@@ -24,7 +24,7 @@ function AddBook() {
       // CRITICAL FLAG
       data.append('isMarketplace', isMarketplace);
 
-      await axios.post('http://localhost:5000/api/books/upload', data, {
+      await axios.post('/api/books/upload', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 

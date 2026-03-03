@@ -17,7 +17,7 @@ export function Dashboard() {
     React.useEffect(() => {
         const fetchBooks = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/books/my-library/${userId}`);
+                const res = await axios.get(`/api/books/my-library/${userId}`);
                 // Map _id to id to fit the existing BookCard prop format
                 const mappedBooks = res.data.map(book => ({
                     ...book,
@@ -41,7 +41,7 @@ export function Dashboard() {
 
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`http://localhost:5000/api/books/${id}`);
+            await axios.delete(`/api/books/${id}`);
             setBooks((prev) => prev.filter((book) => book.id !== id));
         } catch (err) {
             console.error("Failed to delete book", err);
@@ -80,7 +80,7 @@ export function Dashboard() {
         if (data.coverFile) formData.append('coverFile', data.coverFile);
 
         try {
-            const res = await axios.post('http://localhost:5000/api/books/upload', formData, {
+            const res = await axios.post('/api/books/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 

@@ -16,7 +16,7 @@ function Success() {
       if (!sessionId || !bookId || !userId) return;
 
       try {
-        await axios.post('http://localhost:5000/api/payment/verify-payment', {
+        await axios.post('/api/payment/verify-payment', {
             sessionId,
             bookId,
             userId

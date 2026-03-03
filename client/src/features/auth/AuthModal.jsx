@@ -25,7 +25,7 @@ export function AuthModal({ isOpen, onClose }) {
 
         try {
             if (isLogin) {
-                const res = await axios.post('http://localhost:5000/api/auth/login', {
+                const res = await axios.post('/api/auth/login', {
                     email,
                     password
                 });
@@ -34,14 +34,14 @@ export function AuthModal({ isOpen, onClose }) {
                 // Dispatch a custom event so Navbar updates immediately
                 window.dispatchEvent(new Event('storage'));
             } else {
-                const res = await axios.post('http://localhost:5000/api/auth/register', {
+                const res = await axios.post('/api/auth/register', {
                     username,
                     email,
                     password
                 });
 
                 // Automatically log them in after registration to get the token
-                const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
+                const loginRes = await axios.post('/api/auth/login', {
                     email,
                     password
                 });

@@ -34,7 +34,7 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
             const userId = localStorage.getItem('userId');
             if (userId) {
                 try {
-                    const res = await axios.get(`http://localhost:5000/api/users/${userId}`);
+                    const res = await axios.get(`/api/users/${userId}`);
                     setUser(res.data);
                 } catch (err) {
                     console.error("Failed to fetch user data", err);

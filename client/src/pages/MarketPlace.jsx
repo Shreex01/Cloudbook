@@ -23,10 +23,10 @@ export function Marketplace() {
   const fetchMarketplaceBooks = async () => {
     try {
       // Assuming a GET /api/books endpoint returns all public books.
-      // E.g., const res = await axios.get('http://localhost:5000/api/books/marketplace');
+      // E.g., const res = await axios.get('/api/books/marketplace');
       // For now we'll fetch all books and assume they are public
       // If there's no specific marketplace endpoint, we can fall back to the mock or adjust backend later.
-      const res = await axios.get('http://localhost:5000/api/books/marketplace');
+      const res = await axios.get('/api/books/marketplace');
       setBooks(res.data);
     } catch (err) {
       console.error("Error fetching marketplace books:", err);
@@ -49,7 +49,7 @@ export function Marketplace() {
       formData.append('price', '19.99');
 
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/books/upload', formData, {
+      const res = await axios.post('/api/books/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`
@@ -65,6 +65,20 @@ export function Marketplace() {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => {
+        resolve(true);
+      };
+      script.onerror = () => {
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    });
+  };
+
   const handleBuy = async (bookId) => {
     try {
       const userId = localStorage.getItem('userId');
@@ -73,15 +87,51 @@ export function Marketplace() {
         return;
       }
 
-      const res = await axios.post('http://localhost:5000/api/payment/create-checkout-session', {
+      // Load Razorpay script
+      const resLoad = await loadRazorpayScript();
+      if (!resLoad) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        return;
+      }
+
+      // 1. Create order on backend
+      const res = await axios.post('/api/payment/create-order', {
         bookId,
         userId
       });
 
-      // Redirect to Stripe checkout
-      if (res.data.url) {
-        window.location.href = res.data.url;
-      }
+      const { order, bookId: resBookId, userId: resUserId } = res.data;
+
+      // 2. Setup Razorpay options
+      const options = {
+        key: "rzp_test_SMjIl6jiuay3fa", // Add your Razorpay Key ID here
+        amount: order.amount,
+        currency: order.currency,
+        name: "CloudBook",
+        description: "Book Purchase",
+        order_id: order.id,
+        handler: async function (response) {
+          // 3. Verify Payment on backend
+          try {
+            const verifyRes = await axios.post('/api/payment/verify-payment', {
+              ...response,
+              bookId: resBookId,
+              userId: resUserId
+            });
+            alert(verifyRes.data.message);
+          } catch (verifyErr) {
+            console.error("Verification failed", verifyErr);
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        theme: {
+          color: "#2563EB", // Tailwind blue-600
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
     } catch (err) {
       console.error("Payment error:", err);
       alert("Failed to initiate payment. Please try again.");

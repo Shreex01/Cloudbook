@@ -7,7 +7,7 @@ const Book = require('../models/bookmodel');
 router.post('/create-checkout-session', async (req, res) => {
   try {
     const { bookId, userId } = req.body;
-    
+
     const book = await Book.findById(bookId);
     if (!book) return res.status(404).json("Book not found");
 
@@ -22,7 +22,7 @@ router.post('/create-checkout-session', async (req, res) => {
               name: book.title,
               description: `Author: ${book.author}`,
             },
-            unit_amount: book.price * 100, // Stripe expects cents (e.g., $50 = 5000)
+            unit_amount: Math.round(book.price * 100), // Stripe expects exact integer cents
           },
           quantity: 1,
         },
@@ -46,18 +46,18 @@ router.post('/verify-payment', async (req, res) => {
 
     // 1. Verify with Stripe that the payment is actually "paid"
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
+
     if (session.payment_status === 'paid') {
-        const user = await User.findById(userId);
-        
-        // 2. Add book to library (if not already there)
-        if (!user.purchasedBooks.includes(bookId)) {
-            await user.updateOne({ $push: { purchasedBooks: bookId } });
-        }
-        
-        return res.status(200).json({ message: "Payment Verified & Book Added!" });
+      const user = await User.findById(userId);
+
+      // 2. Add book to library (if not already there)
+      if (!user.purchasedBooks.includes(bookId)) {
+        await user.updateOne({ $push: { purchasedBooks: bookId } });
+      }
+
+      return res.status(200).json({ message: "Payment Verified & Book Added!" });
     } else {
-        return res.status(400).json({ message: "Payment Failed" });
+      return res.status(400).json({ message: "Payment Failed" });
     }
   } catch (err) {
     res.status(500).json(err.message);

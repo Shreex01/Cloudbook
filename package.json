@@ -3,6 +3,27 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.33.0",
     "lucide-react": "^0.563.0",
+    "mongodb": "^7.1.0",
     "tailwind-merge": "^3.4.0"
-  }
+  },
+  "name": "cloudbook",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shreex01/Cloudbook.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Shreex01/Cloudbook/issues"
+  },
+  "homepage": "https://github.com/Shreex01/Cloudbook#readme"
 }

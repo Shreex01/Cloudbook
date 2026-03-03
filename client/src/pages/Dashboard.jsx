@@ -4,32 +4,98 @@ import { UploadBook } from '../features/books/UploadBook';
 import { Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-
-// Mock Data
-const INITIAL_BOOKS = [
-    { id: 1, title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', coverUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=800' },
-    { id: 2, title: 'Clean Code', author: 'Robert C. Martin', coverUrl: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&q=80&w=800' },
-    { id: 3, title: 'The Pragmatic Programmer', author: 'Andrew Hunt', coverUrl: '' }, // No cover test
-];
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export function Dashboard() {
-    const [books, setBooks] = useState(INITIAL_BOOKS);
+    const [books, setBooks] = useState([]);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
+    const userId = localStorage.getItem('userId');
 
-    const handleDelete = (id) => {
-        setBooks((prev) => prev.filter((book) => book.id !== id));
+    React.useEffect(() => {
+        const fetchBooks = async () => {
+            try {
+                const res = await axios.get(`http://localhost:5000/api/books/my-library/${userId}`);
+                // Map _id to id to fit the existing BookCard prop format
+                const mappedBooks = res.data.map(book => ({
+                    ...book,
+                    id: book._id,
+                    pdfUrl: book.fileUrl
+                }));
+                setBooks(mappedBooks);
+            } catch (err) {
+                console.error("Failed to fetch books", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (userId) {
+            fetchBooks();
+        } else {
+            navigate('/');
+        }
+    }, [userId, navigate]);
+
+    const handleDelete = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/books/${id}`);
+            setBooks((prev) => prev.filter((book) => book.id !== id));
+        } catch (err) {
+            console.error("Failed to delete book", err);
+        }
     };
 
-    const handleUpload = (file) => {
-        // Mock upload - in real app, send to server
-        const newBook = {
-            id: Date.now(),
-            title: file.name.replace('.pdf', ''),
-            author: 'Unknown',
-            coverUrl: '' // No cover for uploaded PDF for now
+    const handleRead = (book) => {
+        navigate('/read', { state: { book } });
+    };
+
+    const handleUpload = async (data) => {
+        // Generating a local Object URL for instant UI response before cloud clears
+        const tempCoverUrl = data.coverFile ? URL.createObjectURL(data.coverFile) : '';
+        const tempPdfUrl = data.file ? URL.createObjectURL(data.file) : '';
+
+        const tempBook = {
+            id: Date.now(), // temporary id
+            title: data.title || data.file.name.replace('.pdf', ''),
+            author: data.author || 'Unknown',
+            coverUrl: tempCoverUrl,
+            pdfUrl: tempPdfUrl
         };
-        setBooks([...books, newBook]);
+
+        // Optimistic UI update
+        setBooks([...books, tempBook]);
         setIsUploadOpen(false);
+
+        // Actual Cloud Upload
+        const formData = new FormData();
+        formData.append('title', tempBook.title);
+        formData.append('author', tempBook.author);
+        formData.append('ownerId', userId);
+        formData.append('isMarketplace', 'false');
+
+        if (data.file) formData.append('bookFile', data.file);
+        if (data.coverFile) formData.append('coverFile', data.coverFile);
+
+        try {
+            const res = await axios.post('http://localhost:5000/api/books/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Replace optimistic book with real db book
+            setBooks(prev => prev.map(b => b.id === tempBook.id ? {
+                ...res.data,
+                id: res.data._id,
+                pdfUrl: res.data.fileUrl
+            } : b));
+        } catch (err) {
+            console.error("Upload failed", err);
+            // Revert optimistic update on failure
+            setBooks(prev => prev.filter(b => b.id !== tempBook.id));
+            alert("Upload failed. Please try again.");
+        }
     };
 
     return (
@@ -44,7 +110,13 @@ export function Dashboard() {
                 </Button>
             </div>
 
-            <BookGrid books={books} onDelete={handleDelete} />
+            {isLoading ? (
+                <div className="flex justify-center p-12">
+                    <div className="w-8 h-8 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin" />
+                </div>
+            ) : (
+                <BookGrid books={books} onDelete={handleDelete} onRead={handleRead} />
+            )}
 
             <Modal
                 isOpen={isUploadOpen}
@@ -53,6 +125,6 @@ export function Dashboard() {
             >
                 <UploadBook onUpload={handleUpload} />
             </Modal>
-        </div>
+        </div >
     );
 }

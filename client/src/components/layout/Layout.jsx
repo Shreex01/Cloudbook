@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Outlet } from 'react-router-dom';
 
 export function Layout() {
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
     return (
         <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
             {/* Background gradients/blobs */}
@@ -12,8 +14,8 @@ export function Layout() {
             </div>
 
             <div className="relative z-10 flex">
-                <Sidebar />
-                <main className="flex-1 ml-64 min-h-screen">
+                <Sidebar isCollapsed={isSidebarCollapsed} toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+                <main className={`flex-1 min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
                     <div className="p-8 max-w-7xl mx-auto space-y-8">
                         <Outlet />
                     </div>

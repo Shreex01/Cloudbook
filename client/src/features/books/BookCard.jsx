@@ -4,7 +4,7 @@ import { Trash2, BookOpen } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
-export function BookCard({ book, onDelete }) {
+export function BookCard({ book, onDelete, onRead }) {
     const [isHovered, setIsHovered] = useState(false);
 
     return (
@@ -16,7 +16,8 @@ export function BookCard({ book, onDelete }) {
             transition={{ duration: 0.2 }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="group relative w-full aspect-[2/3] perspective-1000"
+            onClick={() => book.pdfUrl && onRead && onRead(book)} // open reader if pdf exists
+            className={`group relative w-full aspect-[2/3] perspective-1000 ${book.pdfUrl ? 'cursor-pointer' : ''}`}
         >
             <Card className="w-full h-full overflow-hidden transition-all duration-500 transform group-hover:-translate-y-2 group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]">
                 {/* Cover Image */}

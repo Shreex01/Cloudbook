@@ -4,7 +4,10 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Layout } from './components/layout/Layout';
+import Marketplace from './pages/MarketPlace';
+import Subscription from './pages/Subscription';
 import Success from './pages/Success';
+import { PdfReader } from './pages/PdfReader';
 
 function App() {
   return (
@@ -16,9 +19,12 @@ function App() {
           {/* Protected Routes (Mocked) */}
           <Route path="/" element={<Layout />}>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="books" element={<Dashboard />} /> {/* Reusing Dashboard for demo */}
-            <Route path="settings" element={<div className="text-white">Settings Page (Coming Soon)</div>} />
+            <Route path="marketplace" element={<Marketplace />} />
+            <Route path="subscription" element={<Subscription />} />
           </Route>
+
+          <Route path="/read" element={<PdfReader />} />
+          <Route path="/success" element={<Success />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -26,6 +32,5 @@ function App() {
     </ThemeProvider>
   );
 }
-<Route path="/success" element={<Success />} />
 
 export default App;

@@ -6,39 +6,62 @@ const multer = require('multer');
 
 // Config Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// 1. UPLOAD (Handles both Private and Marketplace)
-router.post('/upload', upload.single('bookFile'), async (req, res) => {
-    try {
-        const isMarketplace = req.body.isMarketplace === 'true'; // Convert string to boolean
-        
+// Helper to upload a buffer stream to Cloudinary
+const uploadToCloudinary = (buffer, folder, format) => {
+    return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: 'cloudbook_library', resource_type: 'auto', format: 'pdf' },
-            async (error, result) => {
-                if (error) return res.status(500).json(error);
-                
-                const newBook = new Book({
-                    title: req.body.title,
-                    author: req.body.author,
-                    description: req.body.description,
-                    genre: req.body.genre,
-                    price: req.body.price,
-                    owner: req.body.ownerId, 
-                    fileUrl: result.secure_url,
-                    isMarketplace: isMarketplace 
-                });
-
-                const savedBook = await newBook.save();
-                res.status(200).json(savedBook);
+            { folder, resource_type: 'auto', format },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
             }
         );
-        uploadStream.end(req.file.buffer);
+        uploadStream.end(buffer);
+    });
+};
+
+// 1. UPLOAD (Handles both Private and Marketplace)
+router.post('/upload', upload.fields([
+    { name: 'bookFile', maxCount: 1 },
+    { name: 'coverFile', maxCount: 1 }
+]), async (req, res) => {
+    try {
+        const isMarketplace = req.body.isMarketplace === 'true'; // Convert string to boolean
+
+        let fileUrl = '';
+        let coverUrl = '';
+
+        if (req.files['bookFile']) {
+            const result = await uploadToCloudinary(req.files['bookFile'][0].buffer, 'cloudbook_library', 'pdf');
+            fileUrl = result.secure_url;
+        }
+
+        if (req.files['coverFile']) {
+            const result = await uploadToCloudinary(req.files['coverFile'][0].buffer, 'cloudbook_covers', '');
+            coverUrl = result.secure_url;
+        }
+
+        const newBook = new Book({
+            title: req.body.title,
+            author: req.body.author,
+            description: req.body.description,
+            genre: req.body.genre,
+            price: req.body.price || 0,
+            owner: req.body.ownerId,
+            fileUrl: fileUrl,
+            coverUrl: coverUrl,
+            isMarketplace: isMarketplace
+        });
+
+        const savedBook = await newBook.save();
+        res.status(200).json(savedBook);
     } catch (err) { res.status(500).json(err); }
 });
 

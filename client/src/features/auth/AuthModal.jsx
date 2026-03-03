@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -10,17 +11,59 @@ export function AuthModal({ isOpen, onClose }) {
     const [isLogin, setIsLogin] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
 
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
+
     const navigate = useNavigate();
 
-    // Mock form submission
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            onClose(); // Close modal on success (mock)
+        setErrorMsg('');
+
+        try {
+            if (isLogin) {
+                const res = await axios.post('http://localhost:5000/api/auth/login', {
+                    email,
+                    password
+                });
+                localStorage.setItem('token', res.data.token);
+                localStorage.setItem('userId', res.data.user._id);
+                // Dispatch a custom event so Navbar updates immediately
+                window.dispatchEvent(new Event('storage'));
+            } else {
+                const res = await axios.post('http://localhost:5000/api/auth/register', {
+                    username,
+                    email,
+                    password
+                });
+
+                // Automatically log them in after registration to get the token
+                const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
+                    email,
+                    password
+                });
+                localStorage.setItem('token', loginRes.data.token);
+                localStorage.setItem('userId', loginRes.data.user._id);
+                window.dispatchEvent(new Event('storage'));
+            }
+
+            onClose();
             navigate('/dashboard');
-        }, 1500);
+
+            // Clear form
+            setEmail('');
+            setPassword('');
+            setUsername('');
+
+        } catch (err) {
+            console.error("Auth error", err);
+            setErrorMsg(err.response?.data || 'An error occurred during authentication.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const toggleMode = () => setIsLogin(!isLogin);
@@ -36,6 +79,11 @@ export function AuthModal({ isOpen, onClose }) {
                         ? 'Enter your credentials to access your library'
                         : 'Join CloudBook and start your collection today'}
                 </p>
+                {errorMsg && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                        {errorMsg}
+                    </div>
+                )}
             </div>
 
             <AnimatePresence mode="wait">
@@ -53,7 +101,13 @@ export function AuthModal({ isOpen, onClose }) {
                             <label className="text-xs font-medium text-gray-400 ml-1">Full Name</label>
                             <div className="relative">
                                 <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                                <Input placeholder="John Doe" className="pl-10" required />
+                                <Input
+                                    placeholder="John Doe"
+                                    className="pl-10"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required={!isLogin}
+                                />
                             </div>
                         </div>
                     )}
@@ -62,7 +116,14 @@ export function AuthModal({ isOpen, onClose }) {
                         <label className="text-xs font-medium text-gray-400 ml-1">Email Address</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                            <Input type="email" placeholder="name@example.com" className="pl-10" required />
+                            <Input
+                                type="email"
+                                placeholder="name@example.com"
+                                className="pl-10"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
                         </div>
                     </div>
 
@@ -70,7 +131,14 @@ export function AuthModal({ isOpen, onClose }) {
                         <label className="text-xs font-medium text-gray-400 ml-1">Password</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                            <Input type="password" placeholder="••••••••" className="pl-10" required />
+                            <Input
+                                type="password"
+                                placeholder="••••••••"
+                                className="pl-10"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
                         </div>
                     </div>
 

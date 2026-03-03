@@ -7,10 +7,11 @@ const BookSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   genre: { type: String },
   fileUrl: { type: String, required: true },
+  coverUrl: { type: String },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  
+
   // TRUE = Marketplace (Public), FALSE = My Library (Private)
-  isMarketplace: { type: Boolean, default: false }, 
+  isMarketplace: { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Book", BookSchema);

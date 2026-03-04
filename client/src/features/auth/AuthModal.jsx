@@ -5,6 +5,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function AuthModal({ isOpen, onClose }) {
@@ -34,7 +35,7 @@ export function AuthModal({ isOpen, onClose }) {
                 // Dispatch a custom event so Navbar updates immediately
                 window.dispatchEvent(new Event('storage'));
             } else {
-                const res = await axios.post('/api/auth/register', {
+                await axios.post('/api/auth/register', {
                     username,
                     email,
                     password

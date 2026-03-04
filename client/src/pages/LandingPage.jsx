@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { BookOpen, Sparkles, Shield, Zap } from 'lucide-react';
 import { Button } from '../components/ui/Button';

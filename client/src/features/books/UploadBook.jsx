@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, File, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '../../components/ui/Button';

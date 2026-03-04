@@ -16,10 +16,6 @@ export function Marketplace() {
 
   const categories = ['All', 'Science', 'Productivity', 'Programming', 'Business', 'Self-Help'];
 
-  useEffect(() => {
-    fetchMarketplaceBooks();
-  }, []);
-
   const fetchMarketplaceBooks = async () => {
     try {
       // Assuming a GET /api/books endpoint returns all public books.
@@ -32,6 +28,11 @@ export function Marketplace() {
       console.error("Error fetching marketplace books:", err);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchMarketplaceBooks();
+  }, []);
 
   const handlePublish = async (bookData) => {
     try {

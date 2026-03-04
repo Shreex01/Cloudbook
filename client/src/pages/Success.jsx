@@ -17,21 +17,21 @@ function Success() {
 
       try {
         await axios.post('/api/payment/verify-payment', {
-            sessionId,
-            bookId,
-            userId
+          sessionId,
+          bookId,
+          userId
         });
         setStatus("Payment Successful! Book added to Library.");
-        
+
         // Redirect to library after 3 seconds
         setTimeout(() => navigate('/'), 3000);
-      } catch (err) {
+      } catch {
         setStatus("Verification Failed. Please contact support.");
       }
     };
 
     verifyPayment();
-  }, []);
+  }, [navigate, searchParams]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>

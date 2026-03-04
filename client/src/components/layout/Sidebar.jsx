@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// eslint-disable-next-line no-unused-vars
 const NavItem = ({ icon: Icon, label, to, active, isCollapsed }) => (
     <Link
         to={to}

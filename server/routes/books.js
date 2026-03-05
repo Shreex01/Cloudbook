@@ -33,7 +33,23 @@ router.post('/upload', upload.fields([
     { name: 'coverFile', maxCount: 1 }
 ]), async (req, res) => {
     try {
+<<<<<<< HEAD
         const isMarketplace = req.body.isMarketplace === 'true';
+=======
+        const isMarketplace = req.body.isMarketplace === 'true'; // Convert string to boolean
+        const ownerId = req.body.ownerId;
+
+        // Check Upload Limits for Free Users (Private library only)
+        if (!isMarketplace && ownerId) {
+            const user = await User.findById(ownerId);
+            if (user && user.subscriptionTier === 'free') {
+                const privateBookCount = await Book.countDocuments({ owner: ownerId, isMarketplace: false });
+                if (privateBookCount >= 5) {
+                    return res.status(403).json({ message: "Upload limit reached. Upgrade to Premium to upload more books." });
+                }
+            }
+        }
+>>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
 
         let fileUrl = '';
         let coverUrl = '';

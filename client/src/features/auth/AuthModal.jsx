@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Google "G" SVG logo
@@ -48,12 +49,38 @@ export function AuthModal({ isOpen, onClose }) {
 
         try {
             if (isLogin) {
+<<<<<<< HEAD
                 const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
                 handleAuthSuccess(res.data.token, res.data.user._id);
             } else {
                 await axios.post('http://localhost:5000/api/auth/register', { username, email, password });
                 const loginRes = await axios.post('http://localhost:5000/api/auth/login', { email, password });
                 handleAuthSuccess(loginRes.data.token, loginRes.data.user._id);
+=======
+                const res = await axios.post('/api/auth/login', {
+                    email,
+                    password
+                });
+                localStorage.setItem('token', res.data.token);
+                localStorage.setItem('userId', res.data.user._id);
+                // Dispatch a custom event so Navbar updates immediately
+                window.dispatchEvent(new Event('storage'));
+            } else {
+                await axios.post('/api/auth/register', {
+                    username,
+                    email,
+                    password
+                });
+
+                // Automatically log them in after registration to get the token
+                const loginRes = await axios.post('/api/auth/login', {
+                    email,
+                    password
+                });
+                localStorage.setItem('token', loginRes.data.token);
+                localStorage.setItem('userId', loginRes.data.user._id);
+                window.dispatchEvent(new Event('storage'));
+>>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
             }
             setEmail(''); setPassword(''); setUsername('');
         } catch (err) {

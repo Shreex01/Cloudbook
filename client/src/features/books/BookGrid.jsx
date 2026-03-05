@@ -1,5 +1,6 @@
 import React from 'react';
 import { BookCard } from './BookCard';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function BookGrid({ books, onDelete, onRead }) {

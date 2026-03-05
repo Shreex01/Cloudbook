@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 function AddBook() {
   const [formData, setFormData] = useState({ title: '', author: '', price: '', genre: '' });
   const [file, setFile] = useState(null);
-  
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isMarketplace = searchParams.get('mode') === 'marketplace';
@@ -15,7 +15,7 @@ function AddBook() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const userId = localStorage.getItem('userId');
-    
+
     try {
       const data = new FormData();
       Object.keys(formData).forEach(key => data.append(key, formData[key]));
@@ -24,13 +24,13 @@ function AddBook() {
       // CRITICAL FLAG
       data.append('isMarketplace', isMarketplace);
 
-      await axios.post('http://localhost:5000/api/books/upload', data, {
+      await axios.post('/api/books/upload', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       alert("Upload Success!");
       navigate(isMarketplace ? '/marketplace' : '/');
-    } catch (err) { alert("Upload Failed"); }
+    } catch { alert("Upload Failed"); }
   };
 
   return (

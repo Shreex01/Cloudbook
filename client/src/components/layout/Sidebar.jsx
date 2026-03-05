@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// eslint-disable-next-line no-unused-vars
 const NavItem = ({ icon: Icon, label, to, active, isCollapsed }) => (
     <Link
         to={to}
@@ -34,7 +35,7 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
             const userId = localStorage.getItem('userId');
             if (userId) {
                 try {
-                    const res = await axios.get(`http://localhost:5000/api/users/${userId}`);
+                    const res = await axios.get(`/api/users/${userId}`);
                     setUser(res.data);
                 } catch (err) {
                     console.error("Failed to fetch user data", err);

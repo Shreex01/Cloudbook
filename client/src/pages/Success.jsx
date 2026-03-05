@@ -16,22 +16,22 @@ function Success() {
       if (!sessionId || !bookId || !userId) return;
 
       try {
-        await axios.post('http://localhost:5000/api/payment/verify-payment', {
-            sessionId,
-            bookId,
-            userId
+        await axios.post('/api/payment/verify-payment', {
+          sessionId,
+          bookId,
+          userId
         });
         setStatus("Payment Successful! Book added to Library.");
-        
+
         // Redirect to library after 3 seconds
         setTimeout(() => navigate('/'), 3000);
-      } catch (err) {
+      } catch {
         setStatus("Verification Failed. Please contact support.");
       }
     };
 
     verifyPayment();
-  }, []);
+  }, [navigate, searchParams]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>

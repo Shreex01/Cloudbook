@@ -6,14 +6,18 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString(); // Save raw payload for webhook signature checks
+  }
+}));
 app.use(cors());
 
 // Import Routes
 const authRoute = require('./routes/auth');
 const bookRoute = require('./routes/books');
 const userRoute = require('./routes/users');
-const stripeRoute = require('./routes/stripe');
+const razorpayRoute = require('./routes/razorpay');
 
 // Connect DB
 mongoose.connect(process.env.MONGO_URI)
@@ -24,7 +28,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/auth', authRoute);
 app.use('/api/books', bookRoute);
 app.use('/api/users', userRoute);
-app.use('/api/payment', stripeRoute);
+app.use('/api/payment', razorpayRoute);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);

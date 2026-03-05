@@ -5,7 +5,8 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   bio: { type: String, default: '' },
-  subscriptionTier: { type: String, enum: ['free', 'premium'], default: 'free' },
+  profilePicture: { type: String, default: '' },
+  subscriptionTier: { type: String, enum: ['free', 'premium', 'team'], default: 'free' },
   readingProgress: [{
     bookId: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
     currentPage: { type: Number, default: 1 }

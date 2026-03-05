@@ -35,7 +35,7 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
             const userId = localStorage.getItem('userId');
             if (userId) {
                 try {
-                    const res = await axios.get(`/api/users/${userId}`);
+                    const res = await axios.get(`/api/users/${userId}?_t=${Date.now()}`);
                     setUser(res.data);
                 } catch (err) {
                     console.error("Failed to fetch user data", err);
@@ -43,6 +43,10 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
             }
         };
         fetchUser();
+
+        // Listen for profile updates from the Profile page
+        window.addEventListener('userUpdated', fetchUser);
+        return () => window.removeEventListener('userUpdated', fetchUser);
     }, []);
 
     const isActive = (path) => location.pathname === path;
@@ -105,8 +109,12 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
             <div className="p-4 border-t border-white/5 bg-black/10">
                 {!isCollapsed ? (
                     <div className="flex items-center gap-3 p-2 rounded-lg transition-colors group">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0">
-                            {user?.username ? user.username.substring(0, 2).toUpperCase() : 'U'}
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0 overflow-hidden">
+                            {user?.profilePicture ? (
+                                <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                user?.username ? user.username.substring(0, 2).toUpperCase() : 'U'
+                            )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">{user?.username || 'User'}</p>
@@ -122,8 +130,12 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0" title={user?.username || 'User'}>
-                            {user?.username ? user.username.substring(0, 2).toUpperCase() : 'U'}
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0 overflow-hidden" title={user?.username || 'User'}>
+                            {user?.profilePicture ? (
+                                <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                user?.username ? user.username.substring(0, 2).toUpperCase() : 'U'
+                            )}
                         </div>
                         <button
                             onClick={handleLogout}

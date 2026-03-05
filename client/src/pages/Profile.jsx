@@ -40,6 +40,16 @@ export function Profile() {
         setTimeout(() => setToast(null), 3000);
     };
 
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+
+    const handleImageChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setImageFile(e.target.files[0]);
+            setImagePreview(URL.createObjectURL(e.target.files[0]));
+        }
+    };
+
     const handleSave = async () => {
         if (form.newPassword && form.newPassword !== form.confirmPassword) {
             showToast('error', 'New passwords do not match.');
@@ -47,16 +57,23 @@ export function Profile() {
         }
         setIsSaving(true);
         try {
-            const payload = {
-                username: form.username,
-                email: form.email,
-                bio: form.bio,
-            };
-            if (form.newPassword) payload.password = form.newPassword;
+            const formData = new FormData();
+            formData.append('username', form.username);
+            formData.append('email', form.email);
+            formData.append('bio', form.bio);
+            if (form.newPassword) formData.append('password', form.newPassword);
+            if (imageFile) formData.append('profilePicture', imageFile);
 
-            const res = await axios.put(`http://localhost:5000/api/users/${userId}`, payload);
+            const res = await axios.put(`http://localhost:5000/api/users/${userId}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             setUser(res.data);
             setForm(f => ({ ...f, currentPassword: '', newPassword: '', confirmPassword: '' }));
+            setImageFile(null); // Reset file selection after successful save
+
+            // Dispatch an event so Sidebar will re-read updated user immediately
+            window.dispatchEvent(new Event('userUpdated'));
+
             showToast('success', 'Profile updated successfully!');
         } catch (err) {
             showToast('error', err.response?.data?.message || 'Update failed.');
@@ -97,8 +114,8 @@ export function Profile() {
             {/* Toast */}
             {toast && (
                 <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border text-sm font-medium transition-all ${toast.type === 'success'
-                        ? 'bg-green-900/80 border-green-500/30 text-green-200'
-                        : 'bg-red-900/80 border-red-500/30 text-red-200'
+                    ? 'bg-green-900/80 border-green-500/30 text-green-200'
+                    : 'bg-red-900/80 border-red-500/30 text-red-200'
                     }`}>
                     {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
                     {toast.msg}
@@ -107,8 +124,16 @@ export function Profile() {
 
             {/* Avatar & Stats */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 bg-slate-800/40 rounded-2xl p-6 backdrop-blur-md">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30 flex-shrink-0">
-                    {initials}
+                <div className="relative group w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30 flex-shrink-0 overflow-hidden">
+                    {imagePreview || user?.profilePicture ? (
+                        <img src={imagePreview || user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        initials
+                    )}
+                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                        <span className="text-xs text-white font-medium">Upload</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                    </label>
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                     <h2 className="text-xl font-bold text-white">{user?.username}</h2>

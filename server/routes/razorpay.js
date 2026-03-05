@@ -13,21 +13,29 @@ const razorpay = new Razorpay({
 // 1. CREATE ORDER
 router.post('/create-order', async (req, res) => {
     try {
-        const { bookId, userId } = req.body;
-
-        const book = await Book.findById(bookId);
-        if (!book) return res.status(404).json("Book not found");
+        const { bookId, userId, isSubscription, tier, amount } = req.body;
 
         // Razorpay amount is in currency subunits (paise for INR, cents for USD)
-        // Here we will treat the book price as INR or USD subunits. Let's assume INR for Razorpay default
+        let orderAmount = 0;
+        let notes = { userId };
+
+        if (isSubscription) {
+            orderAmount = Math.round(amount * 100);
+            notes.type = 'subscription';
+            notes.tier = tier;
+        } else {
+            const book = await Book.findById(bookId);
+            if (!book) return res.status(404).json("Book not found");
+            orderAmount = Math.round(book.price * 100);
+            notes.type = 'book';
+            notes.bookId = book._id.toString();
+        }
+
         const options = {
-            amount: Math.round(book.price * 100), // amount in the smallest currency unit
+            amount: orderAmount,
             currency: "INR",
             receipt: `receipt_order_${new Date().getTime()}`,
-            notes: {
-                bookId: book._id.toString(),
-                userId: userId
-            }
+            notes: notes
         };
 
         const order = await razorpay.orders.create(options);
@@ -42,7 +50,7 @@ router.post('/create-order', async (req, res) => {
     }
 });
 
-// 2. VERIFY PAYMENT & UNLOCK BOOK
+// 2. VERIFY PAYMENT & UNLOCK BOOK OR SUBSCRIPTION
 router.post('/verify-payment', async (req, res) => {
     try {
         const {
@@ -50,7 +58,9 @@ router.post('/verify-payment', async (req, res) => {
             razorpay_payment_id,
             razorpay_signature,
             bookId,
-            userId
+            userId,
+            isSubscription,
+            tier
         } = req.body;
 
         // Create Signature verification
@@ -65,12 +75,27 @@ router.post('/verify-payment', async (req, res) => {
             // Payment is legit
             const user = await User.findById(userId);
 
-            // Add book to library
-            if (!user.purchasedBooks.includes(bookId)) {
-                await user.updateOne({ $push: { purchasedBooks: bookId } });
-            }
+            if (isSubscription) {
+                // Update subscription tier
+                await user.updateOne({ $set: { subscriptionTier: tier } });
+                return res.status(200).json({ message: `Successfully upgraded to ${tier.toUpperCase()} tier!` });
+            } else {
+                // Determine limits
+                const userTier = user.subscriptionTier || 'free';
+                let maxBooks = 10; // Free plan limit
+                if (userTier === 'premium') maxBooks = 50; // Pro Reader
+                if (userTier === 'team') maxBooks = Infinity; // Team/Highest
 
-            return res.status(200).json({ message: "Payment Verified & Book Added successfully" });
+                if (user.purchasedBooks.length >= maxBooks) {
+                    return res.status(403).json({ message: `You have reached the maximum limit of ${maxBooks} books for your tier. Please upgrade to buy more.` });
+                }
+
+                // Add book to library
+                if (!user.purchasedBooks.includes(bookId)) {
+                    await user.updateOne({ $push: { purchasedBooks: bookId } });
+                }
+                return res.status(200).json({ message: "Payment Verified & Book Added successfully" });
+            }
         } else {
             return res.status(400).json({ message: "Invalid signature sent!" });
         }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
-import { Outlet, useOutletContext } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 
 const PAGE_TITLES = {
     '/dashboard': { title: 'Dashboard', sub: 'Welcome back to your library' },

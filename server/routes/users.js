@@ -12,13 +12,36 @@ router.get("/:id", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// UPDATE user profile (username, email, bio, password)
-router.put("/:id", async (req, res) => {
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const uploadProfilePic = multer({
+  storage: new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: "cloudbook/profiles",
+      allowedFormats: ["jpg", "png", "jpeg", "webp"],
+      transformation: [{ width: 500, height: 500, crop: "fill" }],
+    },
+  }),
+});
+
+// UPDATE user profile (username, email, bio, password, profilePicture)
+router.put("/:id", uploadProfilePic.single('profilePicture'), async (req, res) => {
   try {
     const updates = {};
     if (req.body.username) updates.username = req.body.username;
     if (req.body.email) updates.email = req.body.email;
     if (req.body.bio !== undefined) updates.bio = req.body.bio;
+    if (req.file) updates.profilePicture = req.file.path;
+
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(req.body.password, salt);

@@ -77,7 +77,7 @@ export function AuthModal({ isOpen, onClose }) {
                 });
 
                 // Send to our backend to verify + create/find user
-                const res = await axios.post('http://localhost:5000/api/auth/google-token', {
+                const res = await axios.post('/api/auth/google-token', {
                     email: userInfo.data.email,
                     name: userInfo.data.name,
                     googleId: userInfo.data.sub,

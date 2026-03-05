@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Search, Filter, Star, Upload, X } from 'lucide-react';
@@ -14,8 +14,24 @@ export function Marketplace() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null); // Book Details Modal State
+  const [user, setUser] = useState(null);
 
   const categories = ['All', 'Science', 'Productivity', 'Programming', 'Business', 'Self-Help'];
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        try {
+          const res = await axios.get(`/api/users/${userId}`);
+          setUser(res.data);
+        } catch (err) {
+          console.error("Failed to fetch user data", err);
+        }
+      }
+    };
+    fetchUser();
+  }, []);
 
   const fetchMarketplaceBooks = async () => {
     try {
@@ -84,6 +100,23 @@ export function Marketplace() {
         return;
       }
 
+      if (user?.subscriptionTier === 'free') {
+        alert("Free tier users cannot purchase books from the marketplace. Please upgrade to Pro!");
+        return;
+      }
+
+      const userTier = user?.subscriptionTier || 'free';
+      const librarySize = user?.purchasedBooks?.length || 0;
+
+      let maxBooks = 10;
+      if (userTier === 'premium') maxBooks = 50;
+      if (userTier === 'team') maxBooks = Infinity;
+
+      if (librarySize >= maxBooks) {
+        alert(`You have reached the maximum limit of ${maxBooks} books for your tier. Please upgrade to buy more.`);
+        return;
+      }
+
       // Load Razorpay script
       const resLoad = await loadRazorpayScript();
       if (!resLoad) {
@@ -146,7 +179,10 @@ export function Marketplace() {
   const [actionsSlot, setActionsSlot] = useState(null);
   useEffect(() => {
     const el = document.getElementById('page-actions');
-    if (el) setActionsSlot(el);
+    if (el) {
+      // Defer state update to avoid synchronous cascading render warning
+      Promise.resolve().then(() => setActionsSlot(el));
+    }
     return () => {
       // Clean up when navigating away so other pages don't inherit the button
       if (el) el.innerHTML = '';
@@ -159,7 +195,13 @@ export function Marketplace() {
       {actionsSlot && createPortal(
         <Button
           variant="primary"
-          onClick={() => setIsPublishModalOpen(true)}
+          onClick={() => {
+            if (!user || user.subscriptionTier === 'free') {
+              alert("Free tier users cannot publish books to the marketplace. Please upgrade your plan!");
+              return;
+            }
+            setIsPublishModalOpen(true);
+          }}
           className="bg-indigo-600/90 hover:bg-indigo-500 border-indigo-400/30 shadow-lg shadow-indigo-500/20"
         >
           <Upload size={15} className="mr-1.5" />

@@ -1,13 +1,6 @@
-<<<<<<< HEAD
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, BookmarkCheck, Maximize2 } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import axios from 'axios';
-=======
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Moon, Sun, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Sun, Loader2, ZoomIn, ZoomOut, BookmarkCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import axios from 'axios';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -17,7 +10,6 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 // Configure the worker for pdfjs
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
 
 export function PdfReader() {
     const location = useLocation();
@@ -31,63 +23,11 @@ export function PdfReader() {
     const [isSaved, setIsSaved] = useState(false);
     const saveTimerRef = useRef(null);
 
-    // Load saved progress on mount
-    useEffect(() => {
-        if (!book?._id || !userId) return;
-
-        const fetchProgress = async () => {
-            try {
-                const res = await axios.get(
-                    `http://localhost:5000/api/users/${userId}/progress/${book._id}`
-                );
-                if (res.data && res.data.page > 1) {
-                    setSavedPage(res.data.page);
-                    setShowResumeBanner(true);
-                }
-            } catch (err) {
-                console.error("Could not load reading progress", err);
-            }
-        };
-        fetchProgress();
-    }, [book?._id, userId]);
-
-    // Save progress (debounced) when user interacts with iframe
-    const saveProgress = async (page) => {
-        if (!book?._id || !userId) return;
-        try {
-            await axios.put(
-                `http://localhost:5000/api/users/${userId}/progress/${book._id}`,
-                { page }
-            );
-            setIsSaved(true);
-            setTimeout(() => setIsSaved(false), 2000);
-        } catch (err) {
-            console.error("Failed to save progress", err);
-        }
-    };
-
-    // Listen for page changes from iframe via postMessage (works with some PDF viewers)
-    useEffect(() => {
-        const handleMessage = (e) => {
-            if (e.data && typeof e.data.page === 'number') {
-                clearTimeout(saveTimerRef.current);
-                saveTimerRef.current = setTimeout(() => saveProgress(e.data.page), 1500);
-            }
-        };
-        window.addEventListener('message', handleMessage);
-        return () => {
-            window.removeEventListener('message', handleMessage);
-            clearTimeout(saveTimerRef.current);
-        };
-    }, [book?._id, userId]);
-
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0); // Manage Zoom State
     const [isNightMode, setIsNightMode] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-
-    const userId = localStorage.getItem('userId');
 
     // 1. Fetch initial progress
     useEffect(() => {
@@ -96,7 +36,11 @@ export function PdfReader() {
             try {
                 const res = await axios.get(`/api/users/${userId}/progress/${book._id}`);
                 if (res.data) {
-                    setPageNumber(res.data);
+                    const savedPg = typeof res.data === 'object' ? res.data.currentPage || res.data.page : res.data;
+                    if (savedPg > 1) {
+                        setSavedPage(savedPg);
+                        setShowResumeBanner(true);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch reading progress", err);
@@ -105,17 +49,26 @@ export function PdfReader() {
         fetchProgress();
     }, [book, userId]);
 
+    // Save progress helper
+    const saveProgress = async (page) => {
+        if (!book?._id || !userId) return;
+        try {
+            await axios.put(
+                `/api/users/${userId}/progress/${book._id}`,
+                { currentPage: page }
+            );
+            setIsSaved(true);
+            setTimeout(() => setIsSaved(false), 2000);
+        } catch (err) {
+            console.error("Failed to save progress", err);
+        }
+    };
+
     // 2. Debounce and save progress when pageNumber changes
     useEffect(() => {
         if (!book || !userId || !numPages) return;
-        const timer = setTimeout(async () => {
-            try {
-                await axios.put(`/api/users/${userId}/progress/${book._id}`, {
-                    currentPage: pageNumber
-                });
-            } catch (err) {
-                console.error("Failed to save reading progress", err);
-            }
+        const timer = setTimeout(() => {
+            saveProgress(pageNumber);
         }, 1000); // 1s debounce
 
         return () => clearTimeout(timer);
@@ -129,9 +82,7 @@ export function PdfReader() {
     const changePage = (offset) => {
         setPageNumber(prevPageNumber => {
             const newPage = prevPageNumber + offset;
-            if (numPages) {
-                if (newPage > numPages) return numPages;
-            }
+            if (numPages && newPage > numPages) return numPages;
             if (newPage < 1) return 1;
             return newPage;
         });
@@ -178,18 +129,6 @@ export function PdfReader() {
         : book.pdfUrl;
 
     return (
-<<<<<<< HEAD
-        <div className="flex flex-col h-screen w-full bg-slate-950 text-white overflow-hidden absolute inset-0 z-50">
-            {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-black/40 backdrop-blur-md flex-shrink-0">
-                <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="hover:bg-white/10 transition-colors flex-shrink-0">
-                    <ChevronLeft size={18} className="mr-1" /> Back
-                </Button>
-
-                <div className="flex-1 min-w-0">
-                    <h1 className="text-base font-bold text-white leading-tight truncate">{book.title}</h1>
-                    <p className="text-xs text-gray-400 truncate">{book.author}</p>
-=======
         <div className={`flex flex-col h-screen w-full overflow-hidden absolute inset-0 z-50 transition-colors duration-300 ${isNightMode ? 'bg-[#1a1b26]' : 'bg-slate-100'}`}>
             {/* Header / Nav */}
             <div className={`flex items-center p-4 border-b flex-shrink-0 transition-colors duration-300 ${isNightMode ? 'bg-black/40 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900 shadow-sm'}`}>
@@ -214,12 +153,11 @@ export function PdfReader() {
                     >
                         {isNightMode ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
                 </div>
 
                 {/* Save Progress Button */}
                 <button
-                    onClick={() => saveProgress(1)}
+                    onClick={() => saveProgress(pageNumber)} // Save current page number
                     title="Save reading position"
                     className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5"
                 >
@@ -228,14 +166,16 @@ export function PdfReader() {
                 </button>
             </div>
 
-<<<<<<< HEAD
             {/* Resume Banner */}
             {showResumeBanner && savedPage && (
                 <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-indigo-600/20 border-b border-indigo-500/30 text-sm text-indigo-200 flex-shrink-0">
                     <span>📖 You left off at <strong>page {savedPage}</strong>. Resume where you stopped?</span>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setShowResumeBanner(false)}
+                            onClick={() => {
+                                setPageNumber(savedPage);
+                                setShowResumeBanner(false);
+                            }}
                             className="px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
                         >
                             Resume (p.{savedPage})
@@ -250,23 +190,6 @@ export function PdfReader() {
                 </div>
             )}
 
-            {/* PDF Viewer */}
-            <div className="flex-1 w-full relative bg-slate-900">
-                <iframe
-                    ref={iframeRef}
-                    src={pdfSrc}
-                    title={book.title}
-                    className="w-full h-full absolute inset-0 border-none"
-                >
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
-                        <p>Your browser can't display this PDF inline.</p>
-                        <a href={book.pdfUrl} download className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-500 transition-colors">
-                            Download PDF
-                        </a>
-                    </div>
-                </iframe>
-            </div>
-=======
             {/* PDF Viewer Area with Lenis Smooth Scrolling Context */}
             <ReactLenis
                 className="flex-1 w-full relative overflow-y-auto overflow-x-hidden flex flex-col items-center py-8 px-4"
@@ -374,7 +297,6 @@ export function PdfReader() {
 
                 </div>
             )}
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
         </div>
     );
 }

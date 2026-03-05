@@ -50,16 +50,8 @@ export function Marketplace() {
       if (bookData.coverFile) formData.append('coverFile', bookData.coverFile);
 
       const token = localStorage.getItem('token');
-<<<<<<< HEAD
-      const res = await axios.post('http://localhost:5000/api/books/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
-=======
       const res = await axios.post('/api/books/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
-        }
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
       });
 
       setBooks([res.data.book, ...books]);

@@ -34,10 +34,11 @@ router.put("/:id", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// SAVE reading progress for a book
+// SAVE reading progress for a book (supports both page/scrollPercent and currentPage)
 router.put("/:userId/progress/:bookId", async (req, res) => {
   try {
-    const { page, scrollPercent } = req.body;
+    const { currentPage, page } = req.body;
+    const pageToSave = currentPage || page || 1;
     const user = await User.findById(req.params.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -46,19 +47,13 @@ router.put("/:userId/progress/:bookId", async (req, res) => {
     );
 
     if (existingIdx >= 0) {
-      user.readingProgress[existingIdx].page = page || user.readingProgress[existingIdx].page;
-      user.readingProgress[existingIdx].scrollPercent = scrollPercent ?? user.readingProgress[existingIdx].scrollPercent;
-      user.readingProgress[existingIdx].updatedAt = new Date();
+      user.readingProgress[existingIdx].currentPage = pageToSave;
     } else {
-      user.readingProgress.push({
-        bookId: req.params.bookId,
-        page: page || 1,
-        scrollPercent: scrollPercent || 0
-      });
+      user.readingProgress.push({ bookId: req.params.bookId, currentPage: pageToSave });
     }
 
     await user.save();
-    res.status(200).json({ message: "Progress saved" });
+    res.status(200).json({ message: "Progress saved", currentPage: pageToSave });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -71,11 +66,11 @@ router.get("/:userId/progress/:bookId", async (req, res) => {
     const progress = user.readingProgress.find(
       p => p.bookId.toString() === req.params.bookId
     );
-    res.status(200).json(progress || { page: 1, scrollPercent: 0 });
+    res.status(200).json(progress ? progress.currentPage : 1);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ADD book to purchased library (also used by stripe webhook)
+// ADD book to purchased library
 router.put("/:userId/buy/:bookId", async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
@@ -88,43 +83,4 @@ router.put("/:userId/buy/:bookId", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-<<<<<<< HEAD
-=======
-// Update Reading Progress
-router.put('/:id/progress/:bookId', async (req, res) => {
-  try {
-    const { currentPage } = req.body;
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json("User not found");
-
-    const existingProgressIndex = user.readingProgress.findIndex(
-      p => p.bookId.toString() === req.params.bookId
-    );
-
-    if (existingProgressIndex >= 0) {
-      user.readingProgress[existingProgressIndex].currentPage = currentPage;
-    } else {
-      user.readingProgress.push({ bookId: req.params.bookId, currentPage });
-    }
-
-    await user.save();
-    res.status(200).json(user.readingProgress);
-  } catch (err) { res.status(500).json(err); }
-});
-
-// Get Reading Progress for a specific book
-router.get('/:id/progress/:bookId', async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json("User not found");
-
-    const progress = user.readingProgress.find(
-      p => p.bookId.toString() === req.params.bookId
-    );
-
-    res.status(200).json(progress ? progress.currentPage : 1);
-  } catch (err) { res.status(500).json(err); }
-});
-
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
 module.exports = router;

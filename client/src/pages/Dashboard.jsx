@@ -19,34 +19,15 @@ export function Dashboard() {
     const navigate = useNavigate();
     const userId = localStorage.getItem('userId');
 
-<<<<<<< HEAD
     const fetchBooks = useCallback(async () => {
         try {
             setIsLoading(true);
             const params = new URLSearchParams();
             if (searchQuery) params.set('search', searchQuery);
             if (selectedCategory !== 'All') params.set('category', selectedCategory);
-=======
-    React.useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const res = await axios.get(`/api/books/my-library/${userId}`);
-                // Map _id to id to fit the existing BookCard prop format
-                const mappedBooks = res.data.map(book => ({
-                    ...book,
-                    id: book._id,
-                    pdfUrl: book.fileUrl
-                }));
-                setBooks(mappedBooks);
-            } catch (err) {
-                console.error("Failed to fetch books", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
 
-            const res = await axios.get(`http://localhost:5000/api/books/my-library/${userId}?${params}`);
+
+            const res = await axios.get(`/api/books/my-library/${userId}?${params}`);
             const mappedBooks = res.data.map(book => ({
                 ...book,
                 id: book._id,
@@ -69,17 +50,11 @@ export function Dashboard() {
 
     const handleDelete = async (id) => {
         try {
-<<<<<<< HEAD
-            await axios.delete(`http://localhost:5000/api/books/${id}`);
-            setBooks(prev => prev.filter(b => b.id !== id));
-        } catch (err) { console.error("Failed to delete book", err); }
-=======
             await axios.delete(`/api/books/${id}`);
             setBooks((prev) => prev.filter((book) => book.id !== id));
         } catch (err) {
             console.error("Failed to delete book", err);
         }
->>>>>>> 10de3830ac4cf0f54bc31d7e9f508b676f48697d
     };
 
     const handleRead = (book) => navigate('/read', { state: { book } });

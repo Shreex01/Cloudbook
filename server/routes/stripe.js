@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../models/User');
-const Book = require('../models/bookmodel');
+const Book = require('../models/BookModel');
 
 // 1. CREATE CHECKOUT SESSION
 router.post('/create-checkout-session', async (req, res) => {

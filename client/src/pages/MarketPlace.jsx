@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Search, Filter, Star, Upload, X } from 'lucide-react';
 import { Card } from '../components/ui/Card';
@@ -38,25 +39,20 @@ export function Marketplace() {
       const formData = new FormData();
       formData.append('title', bookData.title);
       formData.append('author', bookData.author);
-      formData.append('bookFile', bookData.file);
-      if (bookData.coverFile) {
-        formData.append('coverFile', bookData.coverFile);
-      }
-
-      // Add a flag or field to distinguish this is a marketplace publication
-      // formData.append('isMarketplace', 'true');
-      // Currently the schema requires price etc., defaulting to 0 for upload
-      formData.append('price', '19.99');
+      formData.append('description', bookData.description || '');
+      formData.append('category', bookData.category || 'General');
+      formData.append('tags', bookData.tags || '');
+      formData.append('price', bookData.price || '0');
+      formData.append('ownerId', localStorage.getItem('userId'));
+      formData.append('isMarketplace', 'true');
+      if (bookData.file) formData.append('bookFile', bookData.file);
+      if (bookData.coverFile) formData.append('coverFile', bookData.coverFile);
 
       const token = localStorage.getItem('token');
       const res = await axios.post('http://localhost:5000/api/books/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
       });
 
-      // Add the returned book to the list
       setBooks([res.data.book, ...books]);
       setIsPublishModalOpen(false);
     } catch (err) {
@@ -95,45 +91,53 @@ export function Marketplace() {
     return matchesSearch && matchesCategory;
   });
 
-  return (
-    <div className="p-8 space-y-8 min-h-screen pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Marketplace</h1>
-          <p className="text-gray-400">Discover and publish your next favorite book</p>
-        </div>
+  // Safely portal the Publish button into the layout's top bar after mount
+  const [actionsSlot, setActionsSlot] = useState(null);
+  useEffect(() => {
+    const el = document.getElementById('page-actions');
+    if (el) setActionsSlot(el);
+    return () => {
+      // Clean up when navigating away so other pages don't inherit the button
+      if (el) el.innerHTML = '';
+    };
+  }, []);
 
-        <div className="flex items-center gap-2">
-          {/* Replaced Cart button with Publish button */}
-          <Button variant="primary" onClick={() => setIsPublishModalOpen(true)} className="bg-blue-600 hover:bg-blue-500">
-            <Upload size={18} className="mr-2" />
-            Publish
-          </Button>
-        </div>
-      </div>
+  return (
+    <div className="space-y-5 pb-20">
+      {/* Portal Publish button into top bar */}
+      {actionsSlot && createPortal(
+        <Button
+          variant="primary"
+          onClick={() => setIsPublishModalOpen(true)}
+          className="bg-indigo-600/90 hover:bg-indigo-500 border-indigo-400/30 shadow-lg shadow-indigo-500/20"
+        >
+          <Upload size={15} className="mr-1.5" />
+          Publish
+        </Button>,
+        actionsSlot
+      )}
 
       {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row gap-3 items-center bg-slate-800/40 px-4 py-3 rounded-2xl backdrop-blur-md">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
           <input
             type="text"
             placeholder="Search by title or author..."
-            className="w-full bg-black/20 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-black/20 border border-white/8 rounded-xl py-2 pl-9 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-          <Filter size={20} className="text-gray-400 min-w-[20px]" />
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <Filter size={14} className="text-slate-500 min-w-[14px]" />
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${selectedCategory === category
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap ${selectedCategory === category
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200'
                 }`}
             >
               {category}
@@ -143,62 +147,76 @@ export function Marketplace() {
       </div>
 
       {/* Books Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredBooks.map((book) => (
-          <Card
+          <div
             key={book._id}
-            className="group overflow-hidden border-transparent hover:border-white/20 transition-all duration-300 hover:-translate-y-1 bg-white/5 hover:bg-white/10 cursor-pointer"
-            onClick={() => setSelectedBook(book)} // Open Modal when clicked
+            className="group relative cursor-pointer"
+            onClick={() => setSelectedBook(book)}
+            style={{ perspective: '1000px' }}
           >
-            {/* Image Container */}
-            <div className="aspect-[2/3] w-full overflow-hidden relative bg-black/50">
-              {book.coverUrl ? (
-                <img
-                  src={book.coverUrl}
-                  alt={book.title || 'Book Cover'}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 border-b border-white/5">
-                  <span className="text-4xl text-white/20">CB</span>
+            {/* Glow ring on hover */}
+            <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-indigo-500/30 via-purple-500/20 to-pink-500/20 blur-sm" />
+
+            <div className="relative rounded-2xl overflow-hidden border border-white/8 bg-gradient-to-b from-slate-800/60 to-slate-900/80 backdrop-blur-xl shadow-lg group-hover:shadow-indigo-500/10 group-hover:shadow-2xl group-hover:-translate-y-1.5 transition-all duration-400 ease-out">
+
+              {/* Cover Image */}
+              <div className="aspect-[3/4] w-full overflow-hidden relative">
+                {book.coverUrl ? (
+                  <img
+                    src={book.coverUrl}
+                    alt={book.title || 'Book Cover'}
+                    className="w-full h-full object-cover transition-transform duration-600 ease-out group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-800 to-slate-900">
+                    <span className="text-3xl font-light tracking-widest text-white/15 select-none">CB</span>
+                  </div>
+                )}
+
+                {/* Subtle overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/10 to-transparent" />
+
+                {/* Floating badges */}
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide text-slate-200/90 bg-slate-900/70 backdrop-blur-md border border-white/10 truncate max-w-[70%]">
+                    {book.category || 'General'}
+                  </span>
+                  <div className="flex items-center gap-0.5 text-amber-400 text-[10px] font-bold px-2 py-0.5 bg-slate-900/70 backdrop-blur-md rounded-full border border-amber-400/20 whitespace-nowrap">
+                    <Star size={9} fill="currentColor" />
+                    <span>{book.rating || 'New'}</span>
+                  </div>
                 </div>
-              )}
+              </div>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+              {/* Card footer */}
+              <div className="px-3 pt-2.5 pb-3 space-y-2">
+                <div>
+                  <h3 className="font-semibold text-sm text-white leading-snug line-clamp-1 tracking-tight">
+                    {book.title || 'Untitled Book'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400/80 mt-0.5 line-clamp-1">
+                    {book.author || 'Unknown Author'}
+                  </p>
+                </div>
 
-              <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
-                <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-xs font-bold text-white border border-white/10">
-                  {book.category || 'General'}
-                </span>
-                <div className="flex items-center gap-1 text-yellow-400 text-xs font-bold px-2 py-1 bg-black/60 backdrop-blur-md rounded-md border border-white/10">
-                  <Star size={12} fill="currentColor" />
-                  {book.rating || 'New'}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-base font-bold text-indigo-400 tracking-tight leading-none">
+                    ${book.price || '0.00'}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleBuy(book._id);
+                    }}
+                    className="flex-shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full bg-indigo-600/90 hover:bg-indigo-500 text-white border border-indigo-400/30 transition-all duration-200 active:scale-95 shadow-md shadow-indigo-500/20"
+                  >
+                    Buy
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Content */}
-            <div className="p-4 space-y-3">
-              <div>
-                <h3 className="font-bold text-lg text-white leading-tight mb-1 truncate">{book.title || 'Untitled Book'}</h3>
-                <p className="text-sm text-gray-400 truncate">{book.author || 'Unknown Author'}</p>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                <span className="text-xl font-bold text-blue-400">${book.price || '0.00'}</span>
-                <Button
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-500 text-white"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Don't trigger the card's onClick
-                    handleBuy(book._id);
-                  }}
-                >
-                  Buy
-                </Button>
-              </div>
-            </div>
-          </Card>
+          </div>
         ))}
       </div>
 
@@ -215,13 +233,9 @@ export function Marketplace() {
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
         title="Publish to Marketplace"
+        size="lg"
       >
-        <div className="max-w-md mx-auto">
-          <p className="text-sm text-gray-400 mb-6 text-center">
-            Upload your PDF and cover image to make your book available to everyone in the CloudBook network.
-          </p>
-          <UploadBook onUpload={handlePublish} />
-        </div>
+        <UploadBook onUpload={handlePublish} showPrice={true} />
       </Modal>
 
       {/* Book Details Modal */}
@@ -231,56 +245,68 @@ export function Marketplace() {
             isOpen={true}
             onClose={() => setSelectedBook(null)}
             title="Book Details"
+            size="lg"
           >
-            <div className="flex flex-col md:flex-row gap-6 items-start max-w-2xl mx-auto p-2">
-              {/* Img Column */}
-              <div className="w-48 flex-shrink-0 mx-auto md:mx-0 rounded-xl overflow-hidden shadow-2xl border border-white/10">
-                {selectedBook.coverUrl ? (
-                  <img
-                    src={selectedBook.coverUrl}
-                    alt={selectedBook.title}
-                    className="w-full h-[288px] object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-[288px] flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-                    <span className="text-3xl text-white/20">CB</span>
-                  </div>
-                )}
+            <div className="flex flex-col sm:flex-row gap-6 items-stretch">
+
+              {/* Cover Column */}
+              <div className="w-full sm:w-44 flex-shrink-0 mx-auto sm:mx-0">
+                <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40 aspect-[3/4] w-full sm:w-44">
+                  {selectedBook.coverUrl ? (
+                    <img
+                      src={selectedBook.coverUrl}
+                      alt={selectedBook.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-800 to-slate-900 gap-2">
+                      <span className="text-4xl font-light tracking-widest text-white/15 select-none">CB</span>
+                      <span className="text-[10px] text-slate-500 uppercase tracking-widest">No Cover</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Details Column */}
-              <div className="flex-1 space-y-4 w-full">
+              <div className="flex-1 flex flex-col gap-4 min-w-0">
+
+                {/* Title & Author */}
                 <div>
-                  <h2 className="text-2xl font-bold text-white leading-tight">{selectedBook.title}</h2>
-                  <p className="text-lg text-gray-400 mt-1">by {selectedBook.author}</p>
+                  <h2 className="text-xl font-bold text-white leading-snug tracking-tight">
+                    {selectedBook.title}
+                  </h2>
+                  <p className="text-sm text-slate-400 mt-1">by {selectedBook.author}</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-semibold text-gray-300 border border-white/10">
+                {/* Category & Rating badges */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-semibold text-slate-300 border border-white/10 whitespace-nowrap">
                     {selectedBook.category || 'General'}
                   </span>
-                  <div className="flex items-center gap-1 text-yellow-400 text-sm font-bold">
-                    <Star size={14} fill="currentColor" />
-                    {selectedBook.rating || 'New Release'}
+                  <div className="flex items-center gap-1 text-amber-400 text-xs font-bold px-3 py-1 bg-amber-400/10 rounded-full border border-amber-400/20 whitespace-nowrap">
+                    <Star size={11} fill="currentColor" />
+                    <span>{selectedBook.rating || 'New Release'}</span>
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                  <h4 className="text-sm font-semibold text-white mb-2">Synopsis</h4>
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    {selectedBook.description || "Discover this incredible literary work now available on CloudBook. Join thousands of readers diving into this story today."}
+                {/* Synopsis */}
+                <div className="bg-slate-800/60 rounded-xl p-4 border border-white/8 flex-1">
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Synopsis</h4>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {selectedBook.description || 'Discover this incredible literary work now available on CloudBook. Join thousands of readers diving into this story today.'}
                   </p>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-white/10 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400 flex items-center gap-2">Price</p>
-                    <p className="text-3xl font-bold text-blue-400">
+                {/* Price + Buy button — fully separated, no overlap */}
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[11px] text-slate-500 uppercase tracking-wider">Price</span>
+                    <span className="text-2xl font-bold text-indigo-400 leading-none">
                       ${selectedBook.price || '0.00'}
-                    </p>
+                    </span>
                   </div>
                   <Button
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 text-lg shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 font-semibold rounded-xl shadow-lg shadow-indigo-500/30 border border-indigo-400/30 flex-shrink-0"
                     onClick={() => {
                       setSelectedBook(null);
                       handleBuy(selectedBook._id);
@@ -289,6 +315,7 @@ export function Marketplace() {
                     Buy Now
                   </Button>
                 </div>
+
               </div>
             </div>
           </Modal>

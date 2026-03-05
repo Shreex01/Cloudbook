@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ShoppingBag, CreditCard, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, ShoppingBag, CreditCard, LogOut, ChevronLeft, ChevronRight, UserCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -97,6 +97,7 @@ export function Sidebar({ isCollapsed, toggleCollapse }) {
                 <NavItem icon={Home} label="Dashboard" to="/dashboard" active={isActive('/dashboard')} isCollapsed={isCollapsed} />
                 <NavItem icon={ShoppingBag} label="Marketplace" to="/marketplace" active={isActive('/marketplace')} isCollapsed={isCollapsed} />
                 <NavItem icon={CreditCard} label="Subscription" to="/subscription" active={isActive('/subscription')} isCollapsed={isCollapsed} />
+                <NavItem icon={UserCircle} label="Profile" to="/profile" active={isActive('/profile')} isCollapsed={isCollapsed} />
             </nav>
 
             {/* User & Logout */}

@@ -5,7 +5,8 @@ const BookSchema = new mongoose.Schema({
   author: { type: String, required: true },
   description: { type: String },
   price: { type: Number, required: true },
-  genre: { type: String },
+  category: { type: String, default: 'General' }, // e.g. Science, Programming, etc.
+  tags: [{ type: String }],                         // free-form tags for search
   fileUrl: { type: String, required: true },
   coverUrl: { type: String },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -13,5 +14,8 @@ const BookSchema = new mongoose.Schema({
   // TRUE = Marketplace (Public), FALSE = My Library (Private)
   isMarketplace: { type: Boolean, default: false },
 }, { timestamps: true });
+
+// Full-text index for search
+BookSchema.index({ title: 'text', author: 'text', description: 'text', tags: 'text' });
 
 module.exports = mongoose.model("Book", BookSchema);

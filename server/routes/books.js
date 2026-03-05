@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const Book = require('../models/bookmodel');
+const Book = require('../models/BookModel');
 const User = require('../models/User');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
@@ -33,7 +33,7 @@ router.post('/upload', upload.fields([
     { name: 'coverFile', maxCount: 1 }
 ]), async (req, res) => {
     try {
-        const isMarketplace = req.body.isMarketplace === 'true'; // Convert string to boolean
+        const isMarketplace = req.body.isMarketplace === 'true';
 
         let fileUrl = '';
         let coverUrl = '';
@@ -48,51 +48,103 @@ router.post('/upload', upload.fields([
             coverUrl = result.secure_url;
         }
 
+        // Parse tags from comma-separated string
+        const tags = req.body.tags
+            ? req.body.tags.split(',').map(t => t.trim()).filter(Boolean)
+            : [];
+
         const newBook = new Book({
             title: req.body.title,
             author: req.body.author,
-            description: req.body.description,
-            genre: req.body.genre,
+            description: req.body.description || '',
+            category: req.body.category || 'General',
+            tags,
             price: req.body.price || 0,
             owner: req.body.ownerId,
-            fileUrl: fileUrl,
-            coverUrl: coverUrl,
-            isMarketplace: isMarketplace
+            fileUrl,
+            coverUrl,
+            isMarketplace
         });
 
         const savedBook = await newBook.save();
-        res.status(200).json(savedBook);
-    } catch (err) { res.status(500).json(err); }
+        res.status(200).json({ book: savedBook });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
 });
 
-// 2. GET PRIVATE LIBRARY (My Uploads + My Purchases)
+// 2. GET PRIVATE LIBRARY (My Uploads + My Purchases) with optional search & category
 router.get('/my-library/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
-        // Books I uploaded privately
-        const myPrivateUploads = await Book.find({ owner: userId, isMarketplace: false });
-        // Books I bought
+        const { search, category } = req.query;
+
+        // Build filter for private uploads
+        let filter = { owner: userId, isMarketplace: false };
+        if (category && category !== 'All') filter.category = category;
+        if (search) {
+            filter.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { author: { $regex: search, $options: 'i' } },
+                { tags: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const myPrivateUploads = await Book.find(filter);
+
+        // Books I bought (populate full doc)
         const user = await User.findById(userId).populate('purchasedBooks');
-        const myPurchases = user ? user.purchasedBooks : [];
+        let myPurchases = user ? user.purchasedBooks : [];
+
+        // Apply search/category filter to purchases too
+        if (search || (category && category !== 'All')) {
+            myPurchases = myPurchases.filter(b => {
+                const matchSearch = !search ||
+                    b.title?.toLowerCase().includes(search.toLowerCase()) ||
+                    b.author?.toLowerCase().includes(search.toLowerCase());
+                const matchCat = !category || category === 'All' || b.category === category;
+                return matchSearch && matchCat;
+            });
+        }
 
         res.status(200).json([...myPrivateUploads, ...myPurchases]);
-    } catch (err) { res.status(500).json(err); }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-// 3. GET MARKETPLACE (All Public Books)
+// 3. GET MARKETPLACE (All Public Books) with optional search & category
 router.get('/marketplace', async (req, res) => {
     try {
-        const books = await Book.find({ isMarketplace: true }).sort({ createdAt: -1 });
+        const { search, category } = req.query;
+        let filter = { isMarketplace: true };
+
+        if (category && category !== 'All') filter.category = category;
+        if (search) {
+            filter.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { author: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { tags: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const books = await Book.find(filter).sort({ createdAt: -1 });
         res.status(200).json(books);
-    } catch (err) { res.status(500).json(err); }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
 // 4. DELETE BOOK
 router.delete('/:id', async (req, res) => {
     try {
         await Book.findByIdAndDelete(req.params.id);
-        res.status(200).json("Deleted");
-    } catch (err) { res.status(500).json(err); }
+        res.status(200).json({ message: "Deleted" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
 module.exports = router;

@@ -8,6 +8,7 @@ import Marketplace from './pages/MarketPlace';
 import Subscription from './pages/Subscription';
 import Success from './pages/Success';
 import { PdfReader } from './pages/PdfReader';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -16,11 +17,12 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
 
-          {/* Protected Routes (Mocked) */}
+          {/* Protected Routes */}
           <Route path="/" element={<Layout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="subscription" element={<Subscription />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
 
           <Route path="/read" element={<PdfReader />} />
